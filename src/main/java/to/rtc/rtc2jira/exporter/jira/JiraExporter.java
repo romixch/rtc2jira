@@ -1,7 +1,9 @@
 package to.rtc.rtc2jira.exporter.jira;
 
 import static to.rtc.rtc2jira.storage.Field.of;
-import static to.rtc.rtc2jira.storage.FieldNames.*;
+import static to.rtc.rtc2jira.storage.FieldNames.DESCRIPTION;
+import static to.rtc.rtc2jira.storage.FieldNames.ID;
+import static to.rtc.rtc2jira.storage.FieldNames.WORK_ITEM_TYPE;
 import static to.rtc.rtc2jira.storage.WorkItemTypes.*;
 
 import java.time.Instant;
@@ -22,6 +24,7 @@ import to.rtc.rtc2jira.exporter.jira.entities.IssueFields;
 import to.rtc.rtc2jira.exporter.jira.entities.IssueMetadata;
 import to.rtc.rtc2jira.exporter.jira.entities.IssueType;
 import to.rtc.rtc2jira.exporter.jira.entities.Project;
+import to.rtc.rtc2jira.exporter.jira.mapping.MappingRegistry;
 import to.rtc.rtc2jira.storage.FieldNames;
 import to.rtc.rtc2jira.storage.StorageEngine;
 import to.rtc.rtc2jira.storage.StorageQuery;
@@ -39,6 +42,7 @@ public class JiraExporter implements Exporter {
   private Map<String, List<IssueType>> existingIssueTypes;
   Optional<Project> projectOptional;
   private int highestExistingId = -1;
+  private MappingRegistry mappingRegistry = new MappingRegistry();
 
   @Override
   public boolean isConfigured() {
@@ -91,12 +95,26 @@ public class JiraExporter implements Exporter {
   private void updateItem(ODocument item) {
     projectOptional.ifPresent(project -> {
       Issue issue = createIssueFromWorkItem(item, project);
-      boolean success = updateIssueInJira(issue);
-      if (success) {
-        storeReference(issue, item);
-        storeTimestampOfLastExport(item);
-      }
+      persistIssue(item, issue);
+      persistNewComments(item, issue);
+      persistAttachments(item, issue);
     });
+  }
+
+  private void persistIssue(ODocument item, Issue issue) {
+    boolean success = updateIssueInJira(issue);
+    if (success) {
+      storeReference(issue, item);
+      storeTimestampOfLastExport(item);
+    }
+  }
+
+  private void persistAttachments(ODocument item, Issue issue) {
+    // TODO Auto-generated method stub
+  }
+
+  private void persistNewComments(ODocument item, Issue issue) {
+    // TODO Auto-generated method stub
   }
 
   void storeReference(Issue jiraIssue, ODocument workItem) {
@@ -143,16 +161,15 @@ public class JiraExporter implements Exporter {
     Issue issue = new Issue();
     IssueFields issueFields = issue.getFields();
     issueFields.setProject(project);
+
     for (Entry<String, Object> entry : workItem) {
+      mappingRegistry.map(entry, issue, store);
+
       String field = entry.getKey();
       switch (field) {
         case ID:
           String id = (String) entry.getValue();
           issue.setId(id);
-          break;
-        case SUMMARY:
-          String summary = (String) entry.getValue();
-          issueFields.setSummary(summary);
           break;
         case DESCRIPTION:
           String htmlText = (String) entry.getValue();
