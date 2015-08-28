@@ -114,7 +114,6 @@ public class JiraExporter implements Exporter {
 
 
   private Optional<Project> getProject() {
-    System.out.println("testing");
     return Optional.ofNullable(restAccess.get("/project/" + settings.getJiraProjectKey(), Project.class));
   }
 
