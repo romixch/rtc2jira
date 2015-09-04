@@ -2,11 +2,7 @@ package to.rtc.rtc2jira.exporter.jira;
 
 import static to.rtc.rtc2jira.storage.Field.of;
 import static to.rtc.rtc2jira.storage.FieldNames.WORK_ITEM_TYPE;
-import static to.rtc.rtc2jira.storage.WorkItemTypes.BUSINESSNEED;
-import static to.rtc.rtc2jira.storage.WorkItemTypes.DEFECT;
-import static to.rtc.rtc2jira.storage.WorkItemTypes.EPIC;
-import static to.rtc.rtc2jira.storage.WorkItemTypes.STORY;
-import static to.rtc.rtc2jira.storage.WorkItemTypes.TASK;
+import static to.rtc.rtc2jira.storage.WorkItemTypes.*;
 
 import java.time.Instant;
 import java.util.Collection;
@@ -16,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -243,12 +240,17 @@ public class JiraExporter implements Exporter {
     IssueType newIssueType = new IssueType();
     newIssueType.setName(issuetypeName);
     newIssueType = restAccess.post("/issuetype", newIssueType, IssueType.class);
+    String msg = "Issue type '" + issuetypeName + "' was created. Unfortunately there is some manual work todo before " //
+        + "you can proceed: Go to jira settings, Issues, Issue type schemes and add the newly created type " //
+        + "with to project.";
+    LOGGER.log(Level.SEVERE, msg);
     return newIssueType;
   }
 
   private Optional<IssueType> getIssueTypeByName(String name, Collection<IssueType> types) {
-    List<IssueType> filteredTypes =
-        types.stream().filter(issuetype -> issuetype.getName().equals(name)).collect(Collectors.toList());
+    List<IssueType> filteredTypes = types.stream().filter(issuetype -> {
+      return issuetype.getName().equals(name);
+    }).collect(Collectors.toList());
     if (filteredTypes.isEmpty()) {
       return Optional.empty();
     } else {
