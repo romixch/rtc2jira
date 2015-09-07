@@ -292,24 +292,19 @@ public class JiraExporter implements Exporter {
 
     List<IssueType> issuesTypesByProject = existingIssueTypes.get(projectKey);
 
-    Supplier<IssueType> createIssueTypeForName = () -> {
-      return createIssueType(issuetypeName);
-    };
-
-    IssueType issueType = getIssueTypeByName(issuetypeName, issuesTypesByProject).orElseGet(createIssueTypeForName);
-
-    if (!issuesTypesByProject.contains(issueType)) {
-      issuesTypesByProject.add(issueType);
+    Optional<IssueType> issueTypeOpt = getIssueTypeByName(issuetypeName, issuesTypesByProject);
+    if (!issueTypeOpt.isPresent()) {
+    	createIssueType(issuetypeName);
+    	throw new RuntimeException("Created IssueType '" + issuetypeName + ". Please configure your JIRA project before you continue: "
+    		    +    "Goto Issue Administration, Issue Type Schemes, search your project and edit, drag and drop all issue types from available to current.");	
     }
-    return issueType;
+    return issueTypeOpt.get();
   }
 
-  private IssueType createIssueType(String issuetypeName) {
+  private void createIssueType(String issuetypeName) {
     IssueType newIssueType = new IssueType();
-
     newIssueType.setName(issuetypeName);
     newIssueType = restAccess.post(newIssueType.getPath(), newIssueType, IssueType.class);
-    return newIssueType;
   }
 
   private Optional<IssueType> getIssueTypeByName(String name, Collection<IssueType> types) {
